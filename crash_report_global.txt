@@ -1,0 +1,7 @@
+Traceback (most recent call last):
+  File "C:\Users\PC\OneDrive\Desktop\robot-trading\verify_multi_target.py", line 111, in <module>
+    test_multi_target_logic()
+  File "C:\Users\PC\OneDrive\Desktop\robot-trading\verify_multi_target.py", line 97, in test_multi_target_logic
+    if len(results) == 3:
+       ^^^^^^^^^^^^
+TypeError: object of type 'NoneType' has no len()
