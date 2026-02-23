@@ -27,11 +27,13 @@ class Col:
 RISK_PERCENT = 1.0
 MAGIC_NUMBER = 123456
 DRY_RUN = False 
-MAX_DAILY_LOSS = -550.0 
-COOLDOWN_HOURS = 2 
-MAX_OPEN_POSITIONS = 30 
+MAX_DAILY_LOSS = -550.0
+COOLDOWN_HOURS = 2
+# Nombre max de PAIRES UNIQUES ouvertes simultanément (chaque paire = 3 positions max).
+# Donc: 5 paires x 3 positions = 15 trades max sur le compte. Risque institutionnel contrôlé.
+MAX_OPEN_PAIRS = 5
 MEMORY_FILE = "bot_memory.json"
-cooldowns = {} 
+cooldowns = {}
 
 def manage_break_even():
     """
@@ -49,9 +51,9 @@ def manage_break_even():
         if sym not in grouped: grouped[sym] = {'TP1': False, 'Others': []}
         
         comment = pos.comment
-        if "TP1" in comment: # Generic matching for robust handling
+        if "TP1" in comment:  # First target (0.5R)
             grouped[sym]['TP1'] = True
-        elif "TP2" in comment or "TP3" in comment:
+        elif "TP2" in comment or "TP3" in comment:  # V9.0: max TP3 (TP4 supprimé)
             grouped[sym]['Others'].append(pos)
             
     # Apply Logic
@@ -258,18 +260,19 @@ def run_bot():
                     if not data:
                         continue
                      
-                    total_positions = mt5.positions_total()
-                    if total_positions >= MAX_OPEN_POSITIONS:
-                         pass
+                    # Compter les PAIRES UNIQUES (pas les positions individuelles !)
+                    unique_pairs_open = count_unique_traded_pairs()
 
                     # 1. Indicators (ATR Only)
                     data = engine.add_indicators(data)
                     
-                    # 2. Strategy (Pure Fibonacci)
-                    # Note: check_signal now handles everything (Swings, Fibs, Zone)
+                    # 2. Strategy (Institutional SMC Fibonacci V9.0)
+                    # check_signal applique les 3 filtres SMC avant de rendre un signal
                     signal = 'NEUTRAL'
                     
-                    can_trade = (not stop_trading_today) and (total_positions < MAX_OPEN_POSITIONS)
+                    can_trade = (not stop_trading_today) and (unique_pairs_open < MAX_OPEN_PAIRS)
+                    if not can_trade and unique_pairs_open >= MAX_OPEN_PAIRS:
+                        print(f"[RISK MANAGER] {unique_pairs_open}/{MAX_OPEN_PAIRS} paires ouvertes. Limite atteinte, {symbol} ignoré.")
                     
                     if can_trade:
                          signal = generator.check_signal(data, symbol)

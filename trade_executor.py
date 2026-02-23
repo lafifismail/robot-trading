@@ -308,10 +308,10 @@ class TradeExecutor:
         total_lot = self.calculate_lot_size(symbol, sl_distance_points)
         if total_lot == 0.0: return None
         
-        # 6. Split Volume Logic (V7.4 4-Bullet Strategy)
-        # We need 4 orders.
-        # Split lot by 4.
-        raw_split_lot = total_lot / 4.0
+        # 6. Split Volume Logic (V9.0 3-Bullet Strategy)
+        # We need 3 orders: TP1, TP2, TP3.
+        # Split lot by 3.
+        raw_split_lot = total_lot / 3.0
         
         # Normalize to Step
         step = symbol_info.volume_step
@@ -328,18 +328,17 @@ class TradeExecutor:
             # Fallback: force min_lot (Total risk increases slightly)
             split_lot = min_lot
             
-        print(f"--- Exécution V7.4 Multi-Target : {signal_type} ---")
-        print(f"Total Risk Lot: {total_lot} -> Split: 4 x {split_lot}")
+        print(f"--- Exécution V9.0 Multi-Target : {signal_type} ---")
+        print(f"Total Risk Lot: {total_lot} -> Split: 3 x {split_lot}")
         print(f"Entry: {entry_price}, SL: {sl_price:.5f}")
         
-        # 7. Targets Assignment (V7.4 Fixed RR)
+        # 7. Targets Assignment (V9.0 Fixed RR)
         # TP1: 0.5 R
         # TP2: 1.0 R
-        # TP3: 1.5 R
-        # TP4: 2.0 R
+        # TP3: 1.5 R  (TP4 removed — max 3 positions per pair)
         
         final_tps = []
-        r_ratios = [0.5, 1.0, 1.5, 2.0]
+        r_ratios = [0.5, 1.0, 1.5]
         
         dist = sl_distance_price
         for r in r_ratios:
@@ -349,10 +348,10 @@ class TradeExecutor:
                 tp = entry_price - (dist * r)
             final_tps.append(tp)
 
-        comments = ["V7.4_TP1", "V7.4_TP2", "V7.4_TP3", "V7.4_TP4"]
+        comments = ["V9.0_TP1", "V9.0_TP2", "V9.0_TP3"]
         order_results = []
         
-        for i in range(4):
+        for i in range(3):
             tp = final_tps[i]
             comment = comments[i]
             
