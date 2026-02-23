@@ -26,7 +26,7 @@ class SignalGenerator:
 
     # --- Kill Zone Configuration ---
     KILL_ZONE_START_UTC = 7   # 07:00 UTC (London Open)
-    KILL_ZONE_END_UTC   = 16  # 16:00 UTC (New York Afternoon)
+    KILL_ZONE_END_UTC   = 22  # 22:00 UTC (New York Close)
 
     # --- Fractal Detection Configuration ---
     FRACTAL_STRENGTH = 5      # Number of candles on each side required to validate a fractal
@@ -48,10 +48,7 @@ class SignalGenerator:
         """
         now_utc = datetime.now(timezone.utc)
         hour = now_utc.hour
-        in_zone = self.KILL_ZONE_START_UTC <= hour < self.KILL_ZONE_END_UTC
-        if not in_zone:
-            print(f"[KILL ZONE] Heure UTC: {hour:02d}h → HORS ZONE (Actif: {self.KILL_ZONE_START_UTC:02d}h–{self.KILL_ZONE_END_UTC:02d}h UTC). Signal ignoré.")
-        return in_zone
+        return self.KILL_ZONE_START_UTC <= hour < self.KILL_ZONE_END_UTC
 
     # ------------------------------------------------------------------
     # FILTER 2: H1 Multi-Timeframe Bias

@@ -35,6 +35,21 @@ MAX_OPEN_PAIRS = 5
 MEMORY_FILE = "bot_memory.json"
 cooldowns = {}
 
+def count_unique_traded_pairs():
+    """
+    Compte le nombre de PAIRES UNIQUES ayant au moins une position ouverte par ce robot.
+    C'est le vrai garde-fou institutionnel : on limite l'exposition par paire, pas par ordre.
+    Exemple : EURUSD (3 positions) + GBPUSD (2 positions) = 2 paires, pas 5.
+    """
+    positions = mt5.positions_get()
+    if positions is None:
+        return 0
+    unique_pairs = set()
+    for pos in positions:
+        if pos.magic >= 123000:  # Filtre par magic number du robot
+            unique_pairs.add(pos.symbol)
+    return len(unique_pairs)
+
 def manage_break_even():
     """
     V7.4 : Sécurisation automatique (Break-Even).
@@ -247,7 +262,18 @@ def run_bot():
                 del cooldowns[s]
             if expired: save_memory_cooldowns()
 
+            # --- KILL ZONE CHECK (une seule fois par cycle) ---
+            _hour_utc = datetime.now(timezone.utc).hour
+            _in_kill_zone = generator.KILL_ZONE_START_UTC <= _hour_utc < generator.KILL_ZONE_END_UTC
+            if not _in_kill_zone:
+                print(f"[KILL ZONE] {_hour_utc:02d}h UTC — Hors session (actif: {generator.KILL_ZONE_START_UTC:02d}h–{generator.KILL_ZONE_END_UTC:02d}h). Attente...")
+                print("Fin du cycle. Attente 60 secondes...")
+                time.sleep(60)
+                continue
+            # ---------------------------------------------------
+
             for symbol in symbols_to_trade:
+
                 try:
                     if symbol in cooldowns and not stop_trading_today:
                         continue
